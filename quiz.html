@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Encrypted Are You?</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a0a2e 35%, #16213e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .background-pattern {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.03;
+            background-image: 
+                radial-gradient(circle at 25% 25%, #8B5CF6 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, #A855F7 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 40px 0;
+        }
+
+        .logo {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #8B5CF6 0%, #A855F7 50%, #C084FC 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: #9CA3AF;
+            margin-bottom: 20px;
+        }
+
+        .quiz-container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .question-counter {
+            color: #8B5CF6;
+            font-weight: 600;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+
+        .question {
+            font-size: 1.3rem;
+            margin-bottom: 30px;
+            line-height: 1.6;
+            font-weight: 500;
+        }
+
+        .options {
+            display: grid;
+            gap: 15px;
+            margin-bottom: 40px;
+        }
+
+        .option {
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid rgba(139, 92, 246, 0.3);
+            border-radius: 12px;
+            padding: 18px 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .option:hover {
+            background: rgba(139, 92, 246, 0.1);
+            border-color: #8B5CF6;
+            transform: translateY(-2px);
+        }
+
+        .option.selected {
+            background: rgba(139, 92, 246, 0.2);
+            border-color: #8B5CF6;
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+        }
+
+        .option::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: left 0.5s;
+        }
+
+        .option:hover::before {
+            left: 100%;
+        }
+
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #8B5CF6 0%, #A855F7 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 12px 24px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(139, 92, 246, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(139, 92, 246, 0.3);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: rgba(139, 92, 246, 0.2);
+            border-color: #8B5CF6;
+        }
+
+        .timer-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .timer {
+            background: rgba(239, 68, 68, 0.2);
+            border: 2px solid #EF4444;
+            border-radius: 12px;
+            padding: 10px 20px;
+            color: #EF4444;
+            font-weight: 700;
+            font-size: 1.1rem;
+            animation: pulse 1s infinite;
+        }
+
+        .timer.warning {
+            background: rgba(251, 191, 36, 0.2);
+            border-color: #FbbF24;
+            color: #FbbF24;
+        }
+
+        .timer.danger {
+            background: rgba(239, 68, 68, 0.3);
+            border-color: #DC2626;
+            color: #DC2626;
+            animation: pulse 0.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #8B5CF6, #A855F7);
+            border-radius: 3px;
+            transition: width 0.5s ease;
+            width: 0%;
+        }
+
+        .results {
+            text-align: center;
+            display: none;
+        }
+
+        .score {
+            font-size: 4rem;
+            font-weight: 700;
+            margin: 30px 0;
+            background: linear-gradient(135deg, #8B5CF6 0%, #A855F7 50%, #C084FC 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .score-text {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #D1D5DB;
+        }
+
+        .encrypted-message {
+            font-size: 2rem;
+            font-weight: 600;
+            margin: 20px 0;
+            background: linear-gradient(135deg, #8B5CF6 0%, #A855F7 50%, #C084FC 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .performance-message {
+            font-size: 1.1rem;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+
+        .excellent { background: rgba(34, 197, 94, 0.2); color: #22C55E; }
+        .good { background: rgba(59, 130, 246, 0.2); color: #3B82F6; }
+        .average { background: rgba(251, 191, 36, 0.2); color: #FbbF24; }
+        .poor { background: rgba(239, 68, 68, 0.2); color: #EF4444; }
+
+        .restart-btn {
+            margin-top: 30px;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .quiz-container {
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .quiz-container {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            .logo {
+                font-size: 2rem;
+            }
+            
+            .question {
+                font-size: 1.1rem;
+            }
+            
+            .score {
+                font-size: 3rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="background-pattern"></div>
+    
+    <div class="container">
+        <div class="header">
+            <div class="logo">☂️ How &lt;encrypted&gt; are you?</div>
+            <div class="subtitle">Privacy Knowledge Challenge</div>
+        </div>
+
+        <div class="quiz-container">
+            <div id="quiz-content">
+                <div class="timer-container">
+                    <div class="timer" id="timer">⏱️ Time: 60s</div>
+                </div>
+                
+                <div class="question-counter">
+                    Question <span id="current-question">1</span> of <span id="total-questions">15</span>
+                </div>
+                
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress"></div>
+                </div>
+
+                <div class="question" id="question-text"></div>
+                
+                <div class="options" id="options-container"></div>
+                
+                <div class="nav-buttons">
+                    <button class="btn btn-secondary" id="prev-btn" onclick="previousQuestion()" disabled>Previous</button>
+                    <button class="btn" id="next-btn" onclick="nextQuestion()" disabled>Next</button>
+                </div>
+            </div>
+
+            <div id="results" class="results">
+                <div class="score" id="final-score"></div>
+                <div class="encrypted-message" id="encrypted-message"></div>
+                <button class="btn restart-btn" onclick="restartQuiz()">Try Again</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const questions = [
+            {
+                question: "What is Arcium's symbol?",
+                options: ["Shield", "Umbrella", "Lock", "Key"],
+                correct: 1
+            },
+            {
+                question: "Complete the phrase: Encrypt Everything, Compute ___",
+                options: ["Securely", "Privately", "Anything", "Everything"],
+                correct: 2
+            },
+            {
+                question: "What is the first name of Arcium's CEO?",
+                options: ["Yannik", "Alex", "Marcus", "David"],
+                correct: 0
+            },
+            {
+                question: "What was the project called before Arcium?",
+                options: ["Cipher", "Elusiv", "Phantom", "Stealth"],
+                correct: 1
+            },
+            {
+                question: "What is the primary color associated with Arcium's branding?",
+                options: ["Blue", "Green", "Purple", "Orange"],
+                correct: 2
+            },
+            {
+                question: "What are Arcium community members called when they verify in the Discord?",
+                options: ["Guardians", "Arcians", "Cryptians", "Members"],
+                correct: 1
+            },
+            {
+                question: "Which cryptocurrency allows users to send private transactions?",
+                options: ["Bitcoin", "Ethereum", "Monero", "Litecoin"],
+                correct: 2
+            },
+            {
+                question: "What does MPC stand for?",
+                options: ["Multiple Protocol Computing", "Multi-Party Computation", "Modern Privacy Cryptography", "Managed Private Computing"],
+                correct: 1
+            },
+            {
+                question: "Which of this is an Arcium MPC Protocol?",
+                options: ["Cerberus", "Hydra", "Phoenix", "Griffin"],
+                correct: 0
+            },
+            {
+                question: "What does FHE stand for?",
+                options: ["Fast Homomorphic Encryption", "Fully Homomorphic Encryption", "Federal Hash Encoding", "Functional Hash Encryption"],
+                correct: 1
+            },
+            {
+                question: "What is the name of Arcium's Rust-centric framework that simplifies developing privacy-preserving apps?",
+                options: ["Arcis", "RustGuard", "PrivateRust", "SecureFrame"],
+                correct: 0
+            },
+            {
+                question: "This Arcium use-case allows traders to execute large orders without exposing their strategies or impacting market prices",
+                options: ["Private Trading", "Dark Pools", "Shadow Markets", "Hidden Exchange"],
+                correct: 1
+            },
+            {
+                question: "Which is Arcium's secure virtual environment for executing private computations?",
+                options: ["SVE", "MXE", "PVE", "SCE"],
+                correct: 1
+            },
+            {
+                question: "What is Arcium's distributed operating system called?",
+                options: ["ArcOS", "arxOS", "SecureOS", "DistOS"],
+                correct: 1
+            },
+            {
+                question: "What is Arcium's native token going to be called?",
+                options: ["ARC", "ARX", "ARCIUM", "AXR"],
+                correct: 1
+            }
+        ];
+
+        let currentQuestion = 0;
+        let selectedAnswers = new Array(questions.length).fill(null);
+        let score = 0;
+        let timeLeft = 60;
+        let timerInterval;
+        let quizStarted = false;
+
+        function initializeQuiz() {
+            document.getElementById('total-questions').textContent = questions.length;
+            displayQuestion();
+            updateProgress();
+            startTimer();
+        }
+
+        function startTimer() {
+            if (!quizStarted) {
+                quizStarted = true;
+                timerInterval = setInterval(updateTimer, 1000);
+            }
+        }
+
+        function updateTimer() {
+            timeLeft--;
+            const timerElement = document.getElementById('timer');
+            timerElement.textContent = `⏱️ Time: ${timeLeft}s`;
+            
+            // Update timer styling based on time left
+            timerElement.className = 'timer';
+            if (timeLeft <= 10) {
+                timerElement.classList.add('danger');
+            } else if (timeLeft <= 20) {
+                timerElement.classList.add('warning');
+            }
+            
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                finishQuiz();
+            }
+        }
+
+        function displayQuestion() {
+            const question = questions[currentQuestion];
+            document.getElementById('current-question').textContent = currentQuestion + 1;
+            document.getElementById('question-text').textContent = question.question;
+            
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+            
+            question.options.forEach((option, index) => {
+                const optionElement = document.createElement('div');
+                optionElement.className = 'option';
+                optionElement.textContent = option;
+                optionElement.onclick = () => selectOption(index);
+                
+                if (selectedAnswers[currentQuestion] === index) {
+                    optionElement.classList.add('selected');
+                }
+                
+                optionsContainer.appendChild(optionElement);
+            });
+            
+            updateNavigationButtons();
+        }
+
+        function selectOption(index) {
+            selectedAnswers[currentQuestion] = index;
+            
+            const options = document.querySelectorAll('.option');
+            options.forEach((option, i) => {
+                option.classList.toggle('selected', i === index);
+            });
+            
+            updateNavigationButtons();
+            
+            // Auto-advance to next question after selection
+            setTimeout(() => {
+                if (currentQuestion < questions.length - 1) {
+                    nextQuestion();
+                } else {
+                    finishQuiz();
+                }
+            }, 300);
+        }
+
+        function updateNavigationButtons() {
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+            
+            prevBtn.disabled = currentQuestion === 0;
+            
+            if (currentQuestion === questions.length - 1) {
+                nextBtn.textContent = 'Finish Quiz';
+                nextBtn.disabled = selectedAnswers[currentQuestion] === null;
+            } else {
+                nextBtn.textContent = 'Next';
+                nextBtn.disabled = selectedAnswers[currentQuestion] === null;
+            }
+        }
+
+        function nextQuestion() {
+            if (currentQuestion === questions.length - 1) {
+                finishQuiz();
+            } else {
+                currentQuestion++;
+                displayQuestion();
+                updateProgress();
+            }
+        }
+
+        function previousQuestion() {
+            if (currentQuestion > 0) {
+                currentQuestion--;
+                displayQuestion();
+                updateProgress();
+            }
+        }
+
+        function updateProgress() {
+            const progress = ((currentQuestion + 1) / questions.length) * 100;
+            document.getElementById('progress').style.width = progress + '%';
+        }
+
+        function finishQuiz() {
+            clearInterval(timerInterval);
+            calculateScore();
+            showResults();
+        }
+
+        function calculateScore() {
+            score = 0;
+            for (let i = 0; i < questions.length; i++) {
+                if (selectedAnswers[i] === questions[i].correct) {
+                    score++;
+                }
+            }
+        }
+
+        function showResults() {
+            document.getElementById('quiz-content').style.display = 'none';
+            document.getElementById('results').style.display = 'block';
+            
+            const percentage = (score / questions.length) * 100;
+            document.getElementById('final-score').textContent = percentage.toFixed(1) + '%';
+            document.getElementById('encrypted-message').textContent = `You are ${percentage.toFixed(1)}% <encrypted>`;
+        }
+
+        function restartQuiz() {
+            currentQuestion = 0;
+            selectedAnswers = new Array(questions.length).fill(null);
+            score = 0;
+            timeLeft = 60;
+            quizStarted = false;
+            clearInterval(timerInterval);
+            
+            document.getElementById('quiz-content').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+            
+            initializeQuiz();
+        }
+
+        // Initialize quiz when page loads
+        window.onload = initializeQuiz;
+    </script>
+</body>
+</html>
